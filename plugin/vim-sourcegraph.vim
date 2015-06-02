@@ -10,13 +10,22 @@
 
 scriptencoding utf-8
 
+if !has('python')
+  echo "Error: Required vim compiled with +python"
+  finish
+endif
+
 let s:debug = 0
 let s:debug_file = 'vim-sourcegraph.log'
 
 let s:BufferName = 'Sourcegraph'
 
-map <unique> <Leader>s :call <SID>SrcDescribe()<cr>
-map <unique> <Leader>q :call <SID>CloseWindow()<cr>
+command! -nargs=0 SrcDescribe call s:SrcDescribe()
+command! -nargs=0 SrcClose call s:SrcClose()
+
+map <unique> <Leader>s :SrcDescribe<cr>
+map <unique> <Leader>q :SrcClose<cr>
+
 
 function! s:SrcDescribe()
   let current_buffer = expand('%:p')
@@ -35,7 +44,7 @@ function! s:ToggleWindow() abort
 
     let srclibwinnr = bufwinnr(s:BufferName)
     if srclibwinnr != -1
-        call s:CloseWindow()
+        call s:SrcClose()
         return
     endif
 
@@ -104,7 +113,7 @@ endfunction
 function! s:UpdateWindow(content) abort
   let srclibwinnr = bufwinnr(s:BufferName)
   if srclibwinnr == -1
-    call s:debug("UpdateWindow finished, windown doesn't exist")
+    call s:debug("UpdateWindow finished, window doesn't exist")
     return
   endif
 
@@ -112,15 +121,15 @@ function! s:UpdateWindow(content) abort
 
   set modifiable
   normal! ggdG
-  call append(0, a:content)
+  pyfile sourcegraph.py
   set nomodifiable
 
-  call s:GotoWin('p')
+  execute 'wincmd p'
 endfunction
 
-" s:CloseWindow() {{{2
-function! s:CloseWindow() abort
-    call s:debug('CloseWindow called')
+" s:SrcClose() {{{2
+function! s:SrcClose() abort
+    call s:debug('SrcClose called')
 
     let window = bufwinnr(s:BufferName)
     if window == -1
@@ -130,7 +139,7 @@ function! s:CloseWindow() abort
 
     exe window . 'close'
 
-    call s:debug('CloseWindow finished')
+    call s:debug('SrcClose finished')
 endfunction
 
 " Helper functions {{{1
