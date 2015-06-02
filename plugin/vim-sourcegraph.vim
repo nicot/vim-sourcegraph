@@ -7,6 +7,8 @@
 " Version:     0.0.1
 " Note:        WIP
 " ============================================================================
+" TODO Fix --no lines in buffer-- error when we close then reopen window
+" TODO cache results and don't analyze if we don't need to
 
 scriptencoding utf-8
 
@@ -19,6 +21,7 @@ let s:debug = 0
 let s:debug_file = 'vim-sourcegraph.log'
 
 let s:BufferName = 'Sourcegraph'
+let s:path = expand('<sfile>:p:h')
 
 command! -nargs=0 SrcDescribe call s:SrcDescribe()
 command! -nargs=0 SrcClose call s:SrcClose()
@@ -30,7 +33,6 @@ map <unique> <Leader>q :SrcClose<cr>
 function! s:SrcDescribe()
   let current_buffer = expand('%:p')
   let start_byte = line2byte(line("."))+col(".")
-  echom start_byte
   let description = system('src api describe --file ' . current_buffer . ' --start-byte ' . start_byte)
 
   call s:OpenWindow('')
@@ -121,7 +123,8 @@ function! s:UpdateWindow(content) abort
 
   set modifiable
   normal! ggdG
-  pyfile sourcegraph.py
+  let p = s:path . '/sourcegraph.py'
+  execute ':pyfile ' . p
   set nomodifiable
 
   execute 'wincmd p'

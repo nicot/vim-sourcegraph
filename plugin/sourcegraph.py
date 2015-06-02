@@ -2,9 +2,9 @@
 import vim
 
 def output(json, buf):
-    buf.append("JSON")
+    buf.append(json)
     del buf[0]
 
-json = vim.eval("a:0")
+json = vim.eval("a:content")
 buf = vim.current.buffer
 output(json, buf)
