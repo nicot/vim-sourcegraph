@@ -13,9 +13,15 @@ scriptencoding utf-8
 let s:debug = 0
 let s:debug_file = 'vim-sourcegraph.log'
 
-function! SrcDescribe()
+let s:BufferName = 'Sourcegraph'
+
+map <unique> <Leader>s :call <SID>SrcDescribe()<cr>
+map <unique> <Leader>q :call <SID>CloseWindow()<cr>
+
+function! s:SrcDescribe()
   let current_buffer = expand('%:p')
   let start_byte = line2byte(line("."))+col(".")
+  echom start_byte
   let description = system('src api describe --file ' . current_buffer . ' --start-byte ' . start_byte)
 
   call s:OpenWindow('')
@@ -27,7 +33,7 @@ endfunction
 function! s:ToggleWindow() abort
     call s:debug('ToggleWindow called')
 
-    let srclibwinnr = bufwinnr("__srclib__")
+    let srclibwinnr = bufwinnr(s:BufferName)
     if srclibwinnr != -1
         call s:CloseWindow()
         return
@@ -43,7 +49,7 @@ function! s:OpenWindow(flags) abort
     call s:debug("OpenWindow called with flags: '" . a:flags . "'")
 
     " Return if the tagbar window is already open
-    let srclibwinnr = bufwinnr('__srclib__')
+    let srclibwinnr = bufwinnr(s:BufferName)
     if srclibwinnr != -1
         call s:debug("OpenWindow finished, srclib already open")
         return
@@ -51,8 +57,9 @@ function! s:OpenWindow(flags) abort
 
     let s:window_opening = 1
     let openpos = 'botright vertical '
-    let srclib_width = 30
-    exe 'silent keepalt ' . openpos . srclib_width . 'split ' . '__srclib__'
+    let srclib_width = 300
+    "exe 'silent ' . openpos . srclib_width . 'split ' . '__srclib__'
+    exe 'silent ' . openpos . 'split ' . s:BufferName
     unlet s:window_opening
 
     call s:InitWindow()
@@ -95,7 +102,7 @@ endfunction
 
 " s:UpdateWindow() {{{2
 function! s:UpdateWindow(content) abort
-  let srclibwinnr = bufwinnr('__srclib__')
+  let srclibwinnr = bufwinnr(s:BufferName)
   if srclibwinnr == -1
     call s:debug("UpdateWindow finished, windown doesn't exist")
     return
@@ -115,63 +122,13 @@ endfunction
 function! s:CloseWindow() abort
     call s:debug('CloseWindow called')
 
-    let tagbarwinnr = bufwinnr('__Tagbar__')
-    if tagbarwinnr == -1
+    let window = bufwinnr(s:BufferName)
+    if window == -1
+        call s:debug('Sourcelib window not found')
         return
     endif
 
-    " Close the preview window if it was opened by us
-    if s:pwin_by_tagbar
-        pclose
-    endif
-
-    let tagbarbufnr = winbufnr(tagbarwinnr)
-
-    if winnr() == tagbarwinnr
-        if winbufnr(2) != -1
-            " Other windows are open, only close the tagbar one
-
-            let curfile = s:known_files.getCurrent(0)
-
-            close
-
-            " Try to jump to the correct window after closing
-            call s:goto_win('p')
-
-            if !empty(curfile)
-                let filebufnr = bufnr(curfile.fpath)
-
-                if bufnr('%') != filebufnr
-                    let filewinnr = bufwinnr(filebufnr)
-                    if filewinnr != -1
-                        call s:goto_win(filewinnr)
-                    endif
-                endif
-            endif
-        endif
-    else
-        " Go to the tagbar window, close it and then come back to the original
-        " window. Save a win-local variable in the original window so we can
-        " jump back to it even if the window number changed.
-        call s:mark_window()
-        call s:goto_win(tagbarwinnr)
-        close
-
-        call s:goto_markedwin()
-    endif
-
-    call s:ShrinkIfExpanded()
-
-    " The window sizes may have changed due to the shrinking happening after
-    " the window closing, so equalize them again.
-    if &equalalways
-        wincmd =
-    endif
-
-    if s:autocommands_done && !s:statusline_in_use
-        autocmd! TagbarAutoCmds
-        let s:autocommands_done = 0
-    endif
+    exe window . 'close'
 
     call s:debug('CloseWindow finished')
 endfunction
