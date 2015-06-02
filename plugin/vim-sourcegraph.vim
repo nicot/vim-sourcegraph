@@ -32,7 +32,7 @@ map <unique> <Leader>q :SrcClose<cr>
 
 function! s:SrcDescribe()
   let current_buffer = expand('%:p')
-  let start_byte = line2byte(line("."))+col(".")
+  let start_byte = line2byte(line("."))+col(".") - 1
   let description = system('src api describe --file ' . current_buffer . ' --start-byte ' . start_byte)
 
   call s:OpenWindow('')
@@ -69,7 +69,6 @@ function! s:OpenWindow(flags) abort
     let s:window_opening = 1
     let openpos = 'botright vertical '
     let srclib_width = 300
-    "exe 'silent ' . openpos . srclib_width . 'split ' . '__srclib__'
     exe 'silent ' . openpos . 'split ' . s:BufferName
     unlet s:window_opening
 
@@ -86,7 +85,7 @@ function! s:InitWindow() abort
 
     setlocal filetype=srclib
 
-    setlocal noreadonly " in case the "view" mode is used
+    setlocal noreadonly " in case the view mode is used
     setlocal buftype=nofile
     setlocal bufhidden=hide
     setlocal noswapfile

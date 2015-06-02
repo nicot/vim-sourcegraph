@@ -2,16 +2,19 @@
 import vim
 import json
 
-def output(srcOutput, buf):
+def output(srcOutput):
     try:
-        js = json.loads(srcOutput)
-        s = json.dumps(js, indent=2)
-        for line in s.split('\n'):
-            buf.append(line)
+        s = json.dumps(info, indent=4)
     except  ValueError:
-        buf.append(srcOutput)
+        s = srcOutput
+    return s
+
+def write(string, buf):
+    for line in string.split('\n'):
+        buf.append(line)
     del buf[0]
 
 srcOutput = vim.eval("a:content")
 buf = vim.current.buffer
-output(srcOutput, buf)
+string = output(srcOutput)
+write(string, buf)
