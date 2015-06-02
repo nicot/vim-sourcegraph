@@ -93,7 +93,6 @@ function! s:InitWindow() abort
     setlocal nobuflisted
     setlocal nomodifiable
     setlocal nolist
-    setlocal nowrap
     setlocal winfixwidth
     setlocal textwidth=0
     setlocal nospell
