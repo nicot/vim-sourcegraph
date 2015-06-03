@@ -12,11 +12,6 @@
 
 scriptencoding utf-8
 
-if !has('python')
-    echo "Error: Required vim compiled with +python"
-    finish
-endif
-
 let s:debug = 0
 let s:debug_file = 'vim-sourcegraph.log'
 
@@ -47,8 +42,11 @@ function! s:Describe()
     let start_byte = line2byte(line("."))+col(".") - 1
     let description = system('src api describe --file ' . current_buffer . ' --start-byte ' . start_byte)
 
-    call s:OpenWindow('')
-    call s:UpdateWindow(description)
+    let json = ParseJSON(description)
+    if len(json) > 0
+        call s:OpenWindow('')
+        call s:UpdateWindow(json)
+    endif
 endfunction
 
 " Window management {{{1
@@ -80,7 +78,6 @@ function! s:OpenWindow(flags) abort
 
     let s:window_opening = 1
     let openpos = 'botright vertical '
-    let srclib_width = 300
     exe 'silent ' . openpos . 'split ' . s:BufferName
     unlet s:window_opening
 
@@ -122,7 +119,8 @@ function! s:InitWindow() abort
 endfunction
 
 " s:UpdateWindow() {{{2
-function! s:UpdateWindow(content) abort
+function! s:UpdateWindow(json) abort
+    let json = a:json
     let srclibwinnr = bufwinnr(s:BufferName)
     if srclibwinnr == -1
         call s:debug("UpdateWindow finished, window doesn't exist")
@@ -133,11 +131,26 @@ function! s:UpdateWindow(content) abort
 
     set modifiable
     normal! ggdG
-    let p = s:path . '/sourcegraph.py'
-    execute ':pyfile ' . p
+    call append(line('$'), ' Name:        ' . json.Def.Name)
+    call append(line('$'), ' Type:        ' . json.Def.Data.TypeString)
+    call append(line('$'), ' File:        ' . json.Def.File)
+    call append(line('$'), ' Import path: ' . json.Def.Data.PackageImportPath)
+    if len(json.Examples) > 0
+        call append(line('$'), '')
+        call append(line('$'), 'Examples: ')
+        for e in json['Examples']
+            call append(line('$'), s:PlainText(e.SrcHTML))
+        endfor
+    endif
+    1delete
     set nomodifiable
 
     execute 'wincmd p'
+endfunction
+
+function s:PlainText(html)
+    return "HI"
+    execute 'pyfile ' .  s:path . '/html.py'
 endfunction
 
 " s:Close() {{{2
