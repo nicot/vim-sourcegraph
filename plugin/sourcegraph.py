@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import vim
-import re
 import json
 from string import Template
 
@@ -18,10 +17,10 @@ def definition(src):
  ''')
     s = t.substitute(name=src['Name'], Type=src['Data']['TypeString'],
             kind=src['Kind'], packageImportPath=src['Data']['PackageImportPath'],
-            File=src['File'], source=readBuffer(src['File'], src['DefStart'], src['DefEnd']))
+            File=src['File'], source=read_file(src['File'], src['DefStart'], src['DefEnd']))
     return s
 
-def readBuffer(path, start, stop):
+def read_file(path, start, stop):
     with open(path) as f:
         f.seek(start)
         s = f.read(stop-start)

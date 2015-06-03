@@ -13,8 +13,8 @@
 scriptencoding utf-8
 
 if !has('python')
-  echo "Error: Required vim compiled with +python"
-  finish
+    echo "Error: Required vim compiled with +python"
+    finish
 endif
 
 let s:debug = 0
@@ -23,20 +23,32 @@ let s:debug_file = 'vim-sourcegraph.log'
 let s:BufferName = 'Sourcegraph'
 let s:path = expand('<sfile>:p:h')
 
-command! -nargs=0 SrcDescribe call s:SrcDescribe()
-command! -nargs=0 SrcClose call s:SrcClose()
+execute 'source ' . s:path .  '/parsejson.vim'
+
+command! -nargs=0 SrcDescribe call s:Describe()
+command! -nargs=0 SrcClose call s:Close()
+command! -nargs=0 SrcJump call s:JumpToDef()
 
 map <unique> <Leader>s :SrcDescribe<cr>
 map <unique> <Leader>q :SrcClose<cr>
 
+function! s:JumpToDef()
+    let current_buffer = expand('%:p')
+    let start_byte = line2byte(line("."))+col(".") - 1
+    let src = system('src api describe --file ' . current_buffer . ' --start-byte ' . start_byte)
+    let json = ParseJSON(src)
 
-function! s:SrcDescribe()
-  let current_buffer = expand('%:p')
-  let start_byte = line2byte(line("."))+col(".") - 1
-  let description = system('src api describe --file ' . current_buffer . ' --start-byte ' . start_byte)
+    execute 'edit ' . json.Def.File
+    call setpos('.', [0, byte2line(json.Def.DefStart+1), 0])
+endfunction
 
-  call s:OpenWindow('')
-  call s:UpdateWindow(description)
+function! s:Describe()
+    let current_buffer = expand('%:p')
+    let start_byte = line2byte(line("."))+col(".") - 1
+    let description = system('src api describe --file ' . current_buffer . ' --start-byte ' . start_byte)
+
+    call s:OpenWindow('')
+    call s:UpdateWindow(description)
 endfunction
 
 " Window management {{{1
@@ -46,7 +58,7 @@ function! s:ToggleWindow() abort
 
     let srclibwinnr = bufwinnr(s:BufferName)
     if srclibwinnr != -1
-        call s:SrcClose()
+        call s:Close()
         return
     endif
 
@@ -111,26 +123,26 @@ endfunction
 
 " s:UpdateWindow() {{{2
 function! s:UpdateWindow(content) abort
-  let srclibwinnr = bufwinnr(s:BufferName)
-  if srclibwinnr == -1
-    call s:debug("UpdateWindow finished, window doesn't exist")
-    return
-  endif
+    let srclibwinnr = bufwinnr(s:BufferName)
+    if srclibwinnr == -1
+        call s:debug("UpdateWindow finished, window doesn't exist")
+        return
+    endif
 
-  call s:GotoWin(srclibwinnr)
+    call s:GotoWin(srclibwinnr)
 
-  set modifiable
-  normal! ggdG
-  let p = s:path . '/sourcegraph.py'
-  execute ':pyfile ' . p
-  set nomodifiable
+    set modifiable
+    normal! ggdG
+    let p = s:path . '/sourcegraph.py'
+    execute ':pyfile ' . p
+    set nomodifiable
 
-  execute 'wincmd p'
+    execute 'wincmd p'
 endfunction
 
-" s:SrcClose() {{{2
-function! s:SrcClose() abort
-    call s:debug('SrcClose called')
+" s:Close() {{{2
+function! s:Close() abort
+    call s:debug('Close called')
 
     let window = bufwinnr(s:BufferName)
     if window == -1
@@ -140,40 +152,40 @@ function! s:SrcClose() abort
 
     exe window . 'close'
 
-    call s:debug('SrcClose finished')
+    call s:debug('Close finished')
 endfunction
 
 " Helper functions {{{1
 " s:GotoWin() {{{2
 function! s:GotoWin(winnr, ...) abort
-  let cmd = type(a:winnr) == type(0) ? a:winnr . 'wincmd w'
-        \ : 'wincmd ' . a:winnr
-  let noauto = a:0 > 0 ? a:1 : 0
+    let cmd = type(a:winnr) == type(0) ? a:winnr . 'wincmd w'
+                \ : 'wincmd ' . a:winnr
+    let noauto = a:0 > 0 ? a:1 : 0
 
-  call s:debug("GotoWin(): " . cmd . ", " . noauto)
+    call s:debug("GotoWin(): " . cmd . ", " . noauto)
 
-  if noauto
-    noautocmd execute cmd
-  else
-    execute cmd
-  endif
+    if noauto
+        noautocmd execute cmd
+    else
+        execute cmd
+    endif
 endfunction
 
 " s:debug() {{{2
 if has('reltime')
-  function! s:gettime() abort
-    let time = split(reltimestr(reltime()), '\.')
-    return strftime('%Y-%m-%d %H:%M:%S.', time[0]) . time[1]
-  endfunction
+    function! s:gettime() abort
+        let time = split(reltimestr(reltime()), '\.')
+        return strftime('%Y-%m-%d %H:%M:%S.', time[0]) . time[1]
+    endfunction
 else
-  function! s:gettime() abort
-    return strftime('%Y-%m-%d %H:%M:%S')
-  endfunction
+    function! s:gettime() abort
+        return strftime('%Y-%m-%d %H:%M:%S')
+    endfunction
 endif
 function! s:debug(msg) abort
-  if s:debug
-    execute 'redir >> ' . s:debug_file
-    silent echon s:gettime() . ': ' . a:msg . "\n"
-    redir END
-  endif
+    if s:debug
+        execute 'redir >> ' . s:debug_file
+        silent echon s:gettime() . ': ' . a:msg . "\n"
+        redir END
+    endif
 endfunction
