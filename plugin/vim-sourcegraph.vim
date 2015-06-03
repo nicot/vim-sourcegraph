@@ -150,7 +150,6 @@ endfunction
 
 function s:PlainText(html)
     return "HI"
-    execute 'pyfile ' .  s:path . '/html.py'
 endfunction
 
 " s:Close() {{{2
