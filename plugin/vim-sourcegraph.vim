@@ -9,6 +9,7 @@
 " ============================================================================
 " TODO Fix --no lines in buffer-- error when we close then reopen window
 " TODO cache results and don't analyze if we don't need to
+" HTML viewing for examples: http://vim.sourceforge.net/scripts/script.php?script_id=1053
 
 scriptencoding utf-8
 
