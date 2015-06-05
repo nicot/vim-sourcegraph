@@ -10,6 +10,7 @@
 " TODO Fix --no lines in buffer-- error when we close then reopen window
 " TODO cache results and don't analyze if we don't need to
 " HTML viewing for examples: http://vim.sourceforge.net/scripts/script.php?script_id=1053
+" Async https://github.com/xolox/vim-misc/blob/master/autoload/xolox/misc/async.vim
 
 scriptencoding utf-8
 
@@ -21,32 +22,47 @@ let s:path = expand('<sfile>:p:h')
 
 execute 'source ' . s:path .  '/parsejson.vim'
 
-command! -nargs=0 SrcDescribe call s:Describe()
-command! -nargs=0 SrcClose call s:Close()
-command! -nargs=0 SrcJump call s:JumpToDef()
-
-map <unique> <Leader>s :SrcDescribe<cr>
+map <unique> <Leader>s :SrcInfo<cr>
 map <unique> <Leader>q :SrcClose<cr>
+
+command! SrcInfo call s:Describe()
+command! SrcClose call s:Close()
+command! SrcJump call s:JumpToDef()
+
+"call type(g:xolox#misc#version)
+" autocmd BufWritePost * execute 'xolox#misc#async#call({function: "echo", arguments: "hi"])'
+
+function s:isJson(json)
+    try
+        ParseJSON(a:json)
+        return 1
+    finally
+        return 0
+    endtry
+endfunction
 
 function! s:JumpToDef()
     let current_buffer = expand('%:p')
     let start_byte = line2byte(line("."))+col(".") - 1
-    let src = system('src api describe --file ' . current_buffer . ' --start-byte ' . start_byte)
-    let json = ParseJSON(src)
-
-    execute 'edit ' . json.Def.File
-    call setpos('.', [0, byte2line(json.Def.DefStart+1), 0])
+    let src = system('src api describe --no-examples --file ' . current_buffer . ' --start-byte ' . start_byte)
+    if s:isJson(src)
+        let json = robustJSON(src)
+        execute 'edit ' . json.Def.File
+        call setpos('.', [0, byte2line(json.Def.DefStart+1), 0])
+    endif
 endfunction
 
 function! s:Describe()
     let current_buffer = expand('%:p')
     let start_byte = line2byte(line("."))+col(".") - 1
-    let description = system('src api describe --file ' . current_buffer . ' --start-byte ' . start_byte)
+    let description = system('src api describe --no-examples --file ' . current_buffer . ' --start-byte ' . start_byte)
 
-    let json = ParseJSON(description)
-    if len(json) > 0
+    if s:isJson(description)
+        let json = s:robustJSON(description)
         call s:OpenWindow('')
         call s:UpdateWindow(json)
+    else
+        echo description
     endif
 endfunction
 
